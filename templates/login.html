@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Home Page</title>
+    <style>
+      body,
+
+      html {
+        height: 100%;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: #f0f2f5;
+        font-family: "Arial", sans-serif;
+      }
+
+      .container {
+        display: flex;
+        width: 80%;
+        max-width: 1000px;
+        background-color: #ffffff;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        border-radius: 12px;
+        overflow: hidden;
+        margin: 20px;
+      }
+
+      .left,
+      .right {
+        flex: 1;
+        padding: 40px;
+      }
+
+      .left {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        background-color: #eaf2f8;
+      }
+
+      .right {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        background-color: #ffffff;
+        border-left: 2px solid #e0e0e0;
+      }
+
+      .img-box {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        margin-bottom: 20px;
+      }
+
+      .img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 50%;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .google-btn {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 10px 20px;
+        background-color: #4285f4;
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        font-size: 18px;
+        transition: background-color 0.3s ease;
+      }
+
+  
+      .google-btn:hover {
+        background-color: #357ae8;
+      }
+
+      .google-icon {
+        background: url("path_to_google_icon") no-repeat center center;
+        background-size: cover;
+        width: 20px;
+        height: 20px;
+        margin-right: 10px;
+      }
+
+      .btn-text {
+        font-size: 18px;
+      }
+
+      h4 {
+        margin-bottom: 20px;
+        font-size: 24px;
+        color: #333;
+      }
+
+      p {
+        font-size: 18px;
+        line-height: 1.6;
+        color: #666;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="left">
+        <h4>Welcome to MACAT</h4>
+        <p>
+          Our web app allows you to upload audio, record audio, or upload video
+          to get transcriptions and translations into Nigerian languages such as
+          Igbo, Hausa, Pidgin, and Yoruba. Experience seamless conversion of
+          your media into text and translations tailored to your needs.
+        </p>
+      </div>
+      <div class="right">
+        <div class="img-box">
+          <img
+            class="img"
+            src="{{ url_for('static', path='icons/avt1.webp') }}"
+          />
+        </div>
+        <a href="/login" class="google-btn">
+          <div class="google-icon"></div>
+          <span class="btn-text">Sign up with Gmail</span>
+        </a>
+      </div>
+    </div>
+  </body>
+</html>

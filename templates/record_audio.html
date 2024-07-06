@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Record Audio</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f0f8ff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+      }
+      .recording-container {
+        text-align: center;
+        background-color: #e6f2ff;
+        padding: 50px;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        width: 60%;
+        max-width: 800px;
+      }
+      .recording-container h1 {
+        margin-bottom: 20px;
+      }
+      .waveform {
+        margin: 20px 0;
+        width: 100%;
+        height: 100px;
+        background-color: #fff;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+      }
+      .controls {
+        display: flex;
+        justify-content: center;
+        margin-top: 20px;
+      }
+      .controls button {
+        padding: 10px 20px;
+        margin: 0 10px;
+        font-size: 16px;
+        background-color: #007bff;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s, transform 0.3s;
+      }
+      .controls button:hover {
+        background-color: #0056b3;
+        transform: scale(1.05);
+      }
+      .controls button.stop {
+        background-color: #ff4d4d;
+      }
+      .controls button.stop:hover {
+        background-color: #e60000;
+      }
+      .options {
+        display: flex;
+        justify-content: center;
+        margin-top: 20px;
+        align-items: center;
+      }
+      .options label {
+        margin-right: 10px;
+        font-size: 16px;
+        align-self: center;
+      }
+      .options input[type="radio"] {
+        margin: 0 10px;
+      }
+      .submit {
+        margin-top: 20px;
+      }
+      .submit button {
+        padding: 10px 20px;
+        font-size: 16px;
+        background-color: #007bff;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s, transform 0.3s;
+      }
+      .submit button:hover {
+        background-color: #0056b3;
+        transform: scale(1.05);
+      }
+      .spinner {
+        display: none;
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="recording-container">
+      <h1>Recording</h1>
+      <div id="timer">00:00.00</div>
+      <canvas id="waveform" class="waveform"></canvas>
+      <div class="controls">
+        <button onclick="startRecording()">Start Recording</button>
+        <button class="stop" onclick="stopRecording()">Stop Recording</button>
+      </div>
+      <div class="options">
+        <label>Speaker Identification:</label>
+        <label for="enable">Enable</label>
+        <input
+          type="radio"
+          id="enable"
+          name="speaker-identification"
+          value="enable"
+          onclick="setSpeakerIdentification('enable')"
+        />
+        <label for="disable">Disable</label>
+        <input
+          type="radio"
+          id="disable"
+          name="speaker-identification"
+          value="disable"
+          onclick="setSpeakerIdentification('disable')"
+          checked
+        />
+      </div>
+      <div class="submit">
+        <button onclick="submitRecording()">Submit</button>
+      </div>
+      <div class="spinner">
+        <img src="static/spinner.gif" alt="Loading..." />
+      </div>
+    </div>
+
+    <script>
+      let recording = false;
+      let speakerIdentification = "disable";
+      let timerInterval;
+      let seconds = 0;
+      let mediaRecorder;
+      let audioContext;
+      let analyser;
+      let dataArray;
+      let bufferLength;
+      let canvas;
+      let canvasCtx;
+      let audioChunks = [];
+
+      function startRecording() {
+        if (recording) return;
+        recording = true;
+        document.getElementById("timer").innerText = "00:00.00";
+        seconds = 0;
+        timerInterval = setInterval(updateTimer, 10);
+        audioChunks = [];
+
+        navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+          audioContext = new (window.AudioContext ||
+            window.webkitAudioContext)();
+          analyser = audioContext.createAnalyser();
+          let source = audioContext.createMediaStreamSource(stream);
+          source.connect(analyser);
+
+          analyser.fftSize = 2048;
+          bufferLength = analyser.frequencyBinCount;
+          dataArray = new Uint8Array(bufferLength);
+
+          canvas = document.getElementById("waveform");
+          canvasCtx = canvas.getContext("2d");
+
+          mediaRecorder = new MediaRecorder(stream);
+          mediaRecorder.ondataavailable = (event) => {
+            audioChunks.push(event.data);
+          };
+          mediaRecorder.start();
+
+          drawWaveform();
+        });
+      }
+
+      function stopRecording() {
+        if (!recording) return;
+        recording = false;
+        clearInterval(timerInterval);
+        mediaRecorder.stop();
+      }
+
+      function updateTimer() {
+        seconds += 0.01;
+        document.getElementById("timer").innerText = seconds.toFixed(2);
+      }
+
+      function setSpeakerIdentification(option) {
+        speakerIdentification = option;
+      }
+
+      async function submitRecording() {
+        if (!audioChunks.length) {
+          alert("No recording to submit.");
+          return;
+        }
+
+        const blob = new Blob(audioChunks, { type: "audio/wav" });
+        const formData = new FormData();
+        formData.append("file", blob, "recording.wav");
+        formData.append("speaker_identification", speakerIdentification);
+
+        document.querySelector(".spinner").style.display = "block";
+
+        try {
+          const response = await fetch("/user/save_audio", {
+            method: "POST",
+            body: formData,
+          });
+
+          document.querySelector(".spinner").style.display = "none";
+
+          if (response.ok) {
+            window.location.href = "/user/success";
+          } else {
+            const result = await response.json();
+            alert(`Failed to submit recording: ${result.message}`);
+          }
+        } catch (error) {
+          document.querySelector(".spinner").style.display = "none";
+          alert(`Failed to submit recording: ${error.message}`);
+        }
+      }
+
+      function drawWaveform() {
+        if (!recording) return;
+
+        requestAnimationFrame(drawWaveform);
+
+        analyser.getByteTimeDomainData(dataArray);
+
+        canvasCtx.fillStyle = "white";
+        canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+        canvasCtx.lineWidth = 2;
+        canvasCtx.strokeStyle = "blue";
+
+        canvasCtx.beginPath();
+
+        let sliceWidth = (canvas.width * 1.0) / bufferLength;
+        let x = 0;
+
+        for (let i = 0; i < bufferLength; i++) {
+          let v = dataArray[i] / 128.0;
+          let y = (v * canvas.height) / 2;
+
+          if (i === 0) {
+            canvasCtx.moveTo(x, y);
+          } else {
+            canvasCtx.lineTo(x, y);
+          }
+
+          x += sliceWidth;
+        }
+
+        canvasCtx.lineTo(canvas.width, canvas.height / 2);
+        canvasCtx.stroke();
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Upload Audio</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f0f8ff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+      }
+      .upload-container {
+        text-align: center;
+        background-color: #ffffff;
+        padding: 50px;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        width: 60%;
+        max-width: 800px;
+        position: relative;
+      }
+      .upload-container h1 {
+        margin-bottom: 20px;
+        color: #007bff;
+      }
+      .drag-drop {
+        border: 2px dashed #007bff;
+        padding: 40px;
+        border-radius: 10px;
+        background-color: #f0f8ff;
+        transition: background-color 0.3s;
+        cursor: pointer;
+      }
+      .drag-drop.dragging {
+        background-color: #e6f2ff;
+      }
+      .drag-drop p {
+        margin: 0;
+        color: #007bff;
+        font-size: 16px;
+      }
+      .controls {
+        display: flex;
+        justify-content: center;
+        margin-top: 20px;
+      }
+      .controls input[type="file"] {
+        display: none;
+      }
+      .controls label {
+        padding: 10px 20px;
+        font-size: 16px;
+        background-color: #007bff;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s, transform 0.3s;
+      }
+      .controls label:hover {
+        background-color: #0056b3;
+        transform: scale(1.05);
+      }
+      .options {
+        display: flex;
+        justify-content: center;
+        margin-top: 20px;
+        align-items: center;
+      }
+      .options label {
+        margin-right: 10px;
+        font-size: 16px;
+        align-self: center;
+      }
+      .options input[type="radio"] {
+        margin: 0 10px;
+      }
+      .submit {
+        margin-top: 20px;
+      }
+      .submit button {
+        padding: 10px 20px;
+        font-size: 16px;
+        background-color: #007bff;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s, transform 0.3s;
+      }
+      .submit button:hover {
+        background-color: #0056b3;
+        transform: scale(1.05);
+      }
+      .spinner {
+        display: none;
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="upload-container">
+      <h1>Upload Audio</h1>
+      <div class="drag-drop" id="drag-drop-area">
+        <p>Drag & Drop your audio file here</p>
+        <p>or</p>
+        <div class="controls">
+          <input type="file" id="audioUpload" accept="audio/*" />
+          <label for="audioUpload">Choose File</label>
+        </div>
+      </div>
+      <div class="options">
+        <label>Speaker Identification:</label>
+        <label for="enable">Enable</label>
+        <input
+          type="radio"
+          id="enable"
+          name="speaker-identification"
+          value="enable"
+          onclick="setSpeakerIdentification('enable')"
+        />
+        <label for="disable">Disable</label>
+        <input
+          type="radio"
+          id="disable"
+          name="speaker-identification"
+          value="disable"
+          onclick="setSpeakerIdentification('disable')"
+          checked
+        />
+      </div>
+      <div class="submit">
+        <button onclick="submitAudio()">Submit</button>
+      </div>
+      <div class="spinner">
+        <img src="static/spinner.gif" alt="Loading..." />
+      </div>
+    </div>
+
+    <script>
+      let speakerIdentification = "disable";
+
+      function setSpeakerIdentification(option) {
+        speakerIdentification = option;
+      }
+
+      const dragDropArea = document.getElementById("drag-drop-area");
+      const audioUploadInput = document.getElementById("audioUpload");
+
+      dragDropArea.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dragDropArea.classList.add("dragging");
+      });
+
+      dragDropArea.addEventListener("dragleave", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dragDropArea.classList.remove("dragging");
+      });
+
+      dragDropArea.addEventListener("drop", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dragDropArea.classList.remove("dragging");
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+          audioUploadInput.files = files;
+        }
+      });
+
+      async function submitAudio() {
+        const audioInput = document.getElementById("audioUpload");
+        if (audioInput.files.length === 0) {
+          alert("Please select an audio file to upload.");
+          return;
+        }
+
+        const file = audioInput.files[0];
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("speaker_identification", speakerIdentification);
+
+        document.querySelector(".spinner").style.display = "block";
+
+        try {
+          const response = await fetch("/user/save_audio", {
+            method: "POST",
+            body: formData,
+          });
+
+          document.querySelector(".spinner").style.display = "none";
+
+          if (response.ok) {
+            window.location.href = "/user/success";
+          } else {
+            const result = await response.json();
+            alert(`Failed to submit audio: ${result.message}`);
+          }
+        } catch (error) {
+          document.querySelector(".spinner").style.display = "none";
+          alert(`Failed to submit audio: ${error.message}`);
+        }
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,12 @@
+authlib
+starlette
+fastapi
+google-api-python-client
+uvicorn
+python-jose[cryptography]
+python-multipart
+requests
+python-dotenv
+itsdangerous
+assemblyai
+moviepy
