@@ -11,7 +11,7 @@ aai_api = os.getenv("ASSEMBLY_AI_API")
 aai.settings.api_key = aai_api
 
 
-class Transcriber():
+class Transcriber:
     POSSIBLE_VIDEO_EXTENSIONS = ["avi", "mp4", "mov"]
 
     def __init__(self, speak_identifier=False):
@@ -34,12 +34,19 @@ class Transcriber():
                 else:
                     return {"status": "success", "text": None}
             except Exception as e:
-                return {"status": "error"}
+                return {"status": "error", "message": str(e)}
         elif file_type == "video":
-            extracted_audio_path = self.remove_audio(path)
-            return self.__transcribe_audio(extracted_audio_path)
+            try:
+                extracted_audio_path = self.remove_audio(path)
+                text = self.__transcribe_audio(extracted_audio_path)
+                if text:
+                    return {"status": "success", "text": text}
+                else:
+                    return {"status": "error", "message": "Failed to transcribe audio"}
+            except Exception as e:
+                return {"status": "error", "message": str(e)}
         else:
-            return None
+            return {"status": "error", "message": "Unsupported file type"}
 
     def remove_audio(self, video_path):
         # Check if the input file has a valid extension
@@ -69,5 +76,3 @@ class Transcriber():
         video.audio.write_audiofile(audio_output_path)
 
         return audio_output_path
-        
-

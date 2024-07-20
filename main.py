@@ -28,8 +28,9 @@ from uvicorn import run
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from  routers import router
 from fastapi.responses import JSONResponse
+from src.macat.transcriber import Transcriber
+from src.macat.bot import refine_transcription
 app = FastAPI()
 app.add_middleware(SessionMiddleware, secret_key="add any string...")
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -136,11 +137,16 @@ async def get_chat(request: Request):
     return templates.TemplateResponse(name="upload_audio.html", 
                                       context = {"request": request,"user":user})
 
+@app.get("/user/upload_video")
+async def get_chat(request: Request):
+    user = request.session.get('user')
 
-
-
+    if not user:
+         return RedirectResponse('/')
+    return templates.TemplateResponse(name="upload_video.html", 
+                                      context = {"request": request,"user":user})
 @app.post("/user/save_audio")
-async def save_audio(file: UploadFile = File(...), speaker_identification: str = Form(...)):
+async def save_audio(request: Request, file: UploadFile = File(...), speaker_identification: str = Form(...)):
     try:
         uploads_dir = "static/uploads"
         if not os.path.exists(uploads_dir):
@@ -154,19 +160,65 @@ async def save_audio(file: UploadFile = File(...), speaker_identification: str =
 
         # Log the speaker identification option
         print(f"Speaker Identification: {speaker_identification}")
+        transcriber = Transcriber(speak_identifier=speaker_identification)
+        result = transcriber.transcribe_file(file_location, "audio")
+        print(result)
 
-        return JSONResponse(content={"status": "success"}, status_code=200)
+        if result["status"] == "success":
+            return templates.TemplateResponse(name="transcribe_out.html", 
+                                              context={"request": request, "text": result["text"]})
+        else:
+            return templates.TemplateResponse(name="transcribe_out.html", 
+                                              context={"request": request, "text": "Error in transcribing, try again"})
+    except Exception as e:
+        print(f"Error saving file: {e}")
+        return JSONResponse(content={"status": "error", "message": str(e)}, status_code=500)
+
+@app.post("/user/save_video")
+async def save_video(request: Request, file: UploadFile = File(...)):
+    try:
+        uploads_dir = "static/uploads"
+        if not os.path.exists(uploads_dir):
+            os.makedirs(uploads_dir)
+        file_location = f"{uploads_dir}/video.mp4"
+
+        print(f"Saving file to: {file_location}")
+        
+        with open(file_location, "wb+") as file_object:
+            file_object.write(file.file.read())
+
+        transcriber = Transcriber()
+        result = transcriber.transcribe_file(file_location, "video")
+        if result["status"] == "success":
+            return templates.TemplateResponse(name="transcribe_out.html", 
+                                              context={"request": request, "text": result["text"]})
+        else:
+            return templates.TemplateResponse(name="transcribe_out.html", 
+                                              context={"request": request, "text": "Error in transcribing, try again"})
     except Exception as e:
         print(f"Error saving file: {e}")
         return JSONResponse(content={"status": "error", "message": str(e)}, status_code=500)
 
 
+@app.post("/user/topic_model_text")
+async def topic_model_text(request: Request, transcription: str = Form(...), role: str = Form(...)):
+    try:
+        refined_text = refine_transcription(transcription, role)
+        if refined_text:
+            return JSONResponse(content={"text": refined_text})
+        else:
+            return JSONResponse(content={"error": "Error in processing the transcription."}, status_code=400)
+    except Exception as e:
+        print(f"Error processing transcription: {e}")
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+       
 
-@app.get("/user/success", response_class=HTMLResponse)
-async def get_success(request: Request):
-    return templates.TemplateResponse("success.html", {"request": request})
-
-
+    except Exception as e:
+        print(f"Error saving file: {e}")
+        return JSONResponse(content={"status": "error", "message": str(e)}, status_code=500)
 
 if __name__ == "__main__":
     run("main:app", host="0.0.0.0", port=8000, reload=True)
+
+
+

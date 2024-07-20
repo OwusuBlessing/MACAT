@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Transcription Success</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f0f8ff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 95vh; /* Reduced margin for top and bottom */
+      }
+      .container {
+        display: flex;
+        background-color: #ffffff;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        border-radius: 10px;
+        overflow: hidden;
+        width: 90%;
+        max-width: 1200px;
+        height: 95%; /* Make container occupy more vertical space */
+      }
+      .left {
+        flex: 2;
+        border-right: 1px solid #ddd;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 20px;
+        overflow-y: auto;
+      }
+      .right {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+        padding: 20px;
+      }
+      .transcribed-text-box {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 10px;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+      }
+      .transcribed-text-box h2 {
+        margin-top: 0;
+      }
+      .buttons {
+        margin-top: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .buttons button {
+        padding: 10px 20px;
+        font-size: 16px;
+        background-color: #007bff;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s, transform 0.3s;
+      }
+      .buttons button:hover {
+        background-color: #0056b3;
+        transform: scale(1.05);
+      }
+      .like-dislike-copy {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        margin-top: 10px;
+      }
+      .like-dislike-copy button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 24px;
+        position: relative;
+        color: #007bff;
+      }
+      .like-dislike-copy .copy-button {
+        color: #007bff;
+      }
+      .like-dislike-copy button:hover {
+        transform: scale(1.1);
+      }
+      .like-dislike-copy button::after {
+        content: attr(data-hover);
+        position: absolute;
+        top: -30px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #000;
+        color: #fff;
+        padding: 5px 10px;
+        border-radius: 5px;
+        opacity: 0;
+        transition: opacity 0.3s;
+        white-space: nowrap;
+        font-size: 12px;
+      }
+      .like-dislike-copy button:hover::after {
+        opacity: 1;
+      }
+      .refine-options {
+        margin-top: 10px;
+        display: flex;
+        align-items: center;
+      }
+      .refine-options select {
+        padding: 10px;
+        font-size: 16px;
+        border-radius: 5px;
+        border: 1px solid #ddd;
+      }
+      .refine-options button {
+        padding: 10px 20px;
+        font-size: 16px;
+        background-color: #007bff;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s, transform 0.3s;
+        margin-left: 10px;
+      }
+      .refine-options button:hover {
+        background-color: #0056b3;
+        transform: scale(1.05);
+      }
+      .spinner {
+        display: none;
+        width: 20px;
+        height: 20px;
+        border: 3px solid #ccc;
+        border-top: 3px solid #007bff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-left: 10px;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+      .refined-text-box {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+        margin-top: 20px;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        max-height: 40%; /* Ensuring the text box doesn't expand indefinitely */
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="left">
+        <div class="transcribed-text-box">
+          <h2>Transcribed text</h2>
+          <pre id="original-text">{{ text }}</pre>
+        </div>
+        <div class="refine-options">
+          <select id="refine-type">
+            <option value="refine">Refine</option>
+            <option value="summarize">Summarize</option>
+            <option value="format">Format</option>
+          </select>
+          <button onclick="refineText()">Apply</button>
+          <div class="spinner" id="spinner"></div>
+        </div>
+        <div
+          class="refined-text-box"
+          id="refined-text-box"
+          style="display: none"
+        >
+          <h2 id="refined-text-title">Refined text</h2>
+          <pre id="refined-text"></pre>
+        </div>
+        <div class="like-dislike-copy">
+          <button onclick="likeText()" data-hover="Like">👍</button>
+          <button onclick="dislikeText()" data-hover="Dislike">👎</button>
+          <button class="copy-button" onclick="copyText()" data-hover="Copy">
+            📋
+          </button>
+        </div>
+      </div>
+      <div class="right">
+        <h3>Select a language for your transcribed text</h3>
+        <div class="buttons">
+          <button onclick="translateText('Yoruba')">Yoruba</button>
+          <button onclick="translateText('Igbo')">Igbo</button>
+          <button onclick="translateText('Hausa')">Hausa</button>
+          <button onclick="translateText('Pidgin')">Pidgin</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function likeText() {
+        alert("You liked the text!");
+      }
+
+      function dislikeText() {
+        alert("You disliked the text!");
+      }
+
+      function copyText() {
+        const text = document.querySelector(
+          ".transcribed-text-box pre"
+        ).textContent;
+        navigator.clipboard.writeText(text).then(() => {
+          alert("Text copied to clipboard");
+        });
+      }
+
+      function translateText(language) {
+        alert("Translating text to " + language + "...");
+        // Add your translation functionality here
+      }
+
+      function typeWriterEffect(element, text, delay = 10) {
+        element.textContent = "";
+        let i = 0;
+        const interval = setInterval(() => {
+          if (i < text.length) {
+            element.textContent += text.charAt(i);
+            i++;
+          } else {
+            clearInterval(interval);
+          }
+        }, delay);
+      }
+
+      async function refineText() {
+        const transcription =
+          document.getElementById("original-text").textContent;
+        const role = document.getElementById("refine-type").value;
+
+        const formData = new FormData();
+        formData.append("transcription", transcription);
+        formData.append("role", role);
+
+        document.getElementById("spinner").style.display = "block";
+
+        try {
+          const response = await fetch("/user/topic_model_text", {
+            method: "POST",
+            body: formData,
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            const refinedTextElement = document.getElementById("refined-text");
+            document.getElementById("refined-text-title").textContent =
+              role === "summarize"
+                ? "Summarized text"
+                : role === "format"
+                ? "Formatted text"
+                : "Refined text";
+            document.getElementById("refined-text-box").style.display = "block";
+            typeWriterEffect(refinedTextElement, result.text, 10); // Set delay to 10ms for faster typing effect
+          } else {
+            alert("Failed to refine the text.");
+          }
+        } catch (error) {
+          alert("Error refining the text: " + error.message);
+        } finally {
+          document.getElementById("spinner").style.display = "none";
+        }
+      }
+    </script>
+  </body>
+</html>

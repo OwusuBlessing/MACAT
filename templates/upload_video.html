@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Upload Audio</title>
+    <title>Upload Video</title>
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -16,15 +16,28 @@
         justify-content: center;
         height: 100vh;
       }
-      .upload-container {
+      .container {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        align-items: flex-start;
+        width: 100%;
+        max-width: 1200px;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+      .upload-container,
+      .video-container {
         text-align: center;
         background-color: #ffffff;
-        padding: 50px;
+        padding: 30px;
         border-radius: 10px;
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        width: 60%;
-        max-width: 800px;
-        position: relative;
+        width: 45%;
+        margin: 0 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
       }
       .upload-container h1 {
         margin-bottom: 20px;
@@ -32,11 +45,12 @@
       }
       .drag-drop {
         border: 2px dashed #007bff;
-        padding: 40px;
+        padding: 30px;
         border-radius: 10px;
         background-color: #f0f8ff;
         transition: background-color 0.3s;
         cursor: pointer;
+        width: 100%;
       }
       .drag-drop.dragging {
         background-color: #e6f2ff;
@@ -73,29 +87,12 @@
         font-size: 14px;
         color: #333;
       }
-      .options {
-        display: flex;
-        justify-content: center;
-        margin-top: 20px;
-        align-items: center;
-      }
-      .options label {
-        margin-right: 10px;
-        font-size: 16px;
-        align-self: center;
-      }
-      .options input[type="radio"] {
-        margin: 0 10px;
-      }
-      .audio-player {
-        margin-top: 20px;
-        display: none;
-        flex-direction: column;
-        align-items: center;
-      }
-      .audio-player audio {
+      .video-player {
         width: 100%;
         max-width: 600px;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        margin-bottom: 20px;
       }
       .submit {
         margin-top: 20px;
@@ -148,6 +145,7 @@
         background-color: #f0f8ff;
         display: none;
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        width: 100%;
       }
       .transcription-result h2 {
         margin-top: 0;
@@ -156,68 +154,43 @@
     </style>
   </head>
   <body>
-    <div class="upload-container">
-      <h1>Upload Audio</h1>
-      <div class="drag-drop" id="drag-drop-area">
-        <p>Drag & Drop your audio file here</p>
-        <p>or</p>
-        <div class="controls">
-          <input type="file" id="audioUpload" accept="audio/*" />
-          <label for="audioUpload">Choose File</label>
+    <div class="container">
+      <div class="upload-container">
+        <h1>Upload Video</h1>
+        <div class="drag-drop" id="drag-drop-area">
+          <p>Drag & Drop your video file here</p>
+          <p>or</p>
+          <div class="controls">
+            <input type="file" id="videoUpload" accept="video/*" />
+            <label for="videoUpload">Choose File</label>
+          </div>
+          <div class="file-name" id="file-name"></div>
         </div>
-        <div class="file-name" id="file-name"></div>
       </div>
-      <div class="options">
-        <label>Speaker Identification:</label>
-        <label for="enable">Enable</label>
-        <input
-          type="radio"
-          id="enable"
-          name="speaker-identification"
-          value="enable"
-          onclick="setSpeakerIdentification('enable')"
-        />
-        <label for="disable">Disable</label>
-        <input
-          type="radio"
-          id="disable"
-          name="speaker-identification"
-          value="disable"
-          onclick="setSpeakerIdentification('disable')"
-          checked
-        />
+      <div class="video-container" id="video-container" style="display: none">
+        <video controls id="video-preview" class="video-player">
+          Your browser does not support the video element.
+        </video>
+        <div class="submit">
+          <button onclick="submitVideo()">Submit</button>
+        </div>
+        <div class="spinner-container" id="spinner-container">
+          <div class="spinner" id="spinner"></div>
+          <p class="spinner-text">Processing, please wait...</p>
+        </div>
+        <div class="transcription-result" id="transcription-result">
+          <h2>Transcription Result</h2>
+          <p id="transcription-text"></p>
+        </div>
       </div>
-      <div class="audio-player" id="audio-player">
-        <audio controls id="audio-preview">
-          Your browser does not support the audio element.
-        </audio>
-      </div>
-      <div class="submit">
-        <button onclick="submitAudio()">Submit</button>
-      </div>
-      <div class="spinner-container" id="spinner-container">
-        <div class="spinner" id="spinner"></div>
-        <p class="spinner-text">Processing, please wait...</p>
-      </div>
-    </div>
-
-    <div class="transcription-result" id="transcription-result">
-      <h2>Transcription Result</h2>
-      <p id="transcription-text"></p>
     </div>
 
     <script>
-      let speakerIdentification = "disable";
-
-      function setSpeakerIdentification(option) {
-        speakerIdentification = option;
-      }
-
       const dragDropArea = document.getElementById("drag-drop-area");
-      const audioUploadInput = document.getElementById("audioUpload");
+      const videoUploadInput = document.getElementById("videoUpload");
       const fileNameDisplay = document.getElementById("file-name");
-      const audioPlayer = document.getElementById("audio-player");
-      const audioPreview = document.getElementById("audio-preview");
+      const videoContainer = document.getElementById("video-container");
+      const videoPreview = document.getElementById("video-preview");
 
       dragDropArea.addEventListener("dragover", (e) => {
         e.preventDefault();
@@ -241,8 +214,8 @@
         }
       });
 
-      audioUploadInput.addEventListener("change", () => {
-        const files = audioUploadInput.files;
+      videoUploadInput.addEventListener("change", () => {
+        const files = videoUploadInput.files;
         if (files.length > 0) {
           handleFiles(files);
         }
@@ -252,26 +225,25 @@
         const file = files[0];
         fileNameDisplay.textContent = `Selected file: ${file.name}`;
         const fileURL = URL.createObjectURL(file);
-        audioPreview.src = fileURL;
-        audioPlayer.style.display = "flex";
+        videoPreview.src = fileURL;
+        videoContainer.style.display = "flex";
       }
 
-      async function submitAudio() {
-        const audioInput = document.getElementById("audioUpload");
-        if (audioInput.files.length === 0) {
-          alert("Please select an audio file to upload.");
+      async function submitVideo() {
+        const videoInput = document.getElementById("videoUpload");
+        if (videoInput.files.length === 0) {
+          alert("Please select a video file to upload.");
           return;
         }
 
-        const file = audioInput.files[0];
+        const file = videoInput.files[0];
         const formData = new FormData();
         formData.append("file", file);
-        formData.append("speaker_identification", speakerIdentification);
 
         document.getElementById("spinner-container").style.display = "block";
 
         try {
-          const response = await fetch("/user/save_audio", {
+          const response = await fetch("/user/save_video", {
             method: "POST",
             body: formData,
           });
@@ -283,10 +255,10 @@
             document.close();
           } else {
             const result = await response.json();
-            alert(`Failed to submit audio: ${result.message}`);
+            alert(`Failed to submit video: ${result.message}`);
           }
         } catch (error) {
-          alert(`Failed to submit audio: ${error.message}`);
+          alert(`Failed to submit video: ${error.message}`);
         } finally {
           document.getElementById("spinner-container").style.display = "none";
         }
