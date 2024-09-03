@@ -13,6 +13,8 @@
         display: flex;
         flex-direction: column;
         align-items: center;
+        min-height: 100vh;
+        position: relative;
       }
       .welcome-text {
         background-color: #007bff;
@@ -71,9 +73,8 @@
       }
       video {
         width: 100%;
-        height: auto;
         max-width: 800px;
-        margin-top: 20px;
+        height: 450px; /* Fixed height to maintain aspect ratio */
         border: 2px solid #007bff;
         border-radius: 10px;
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -92,14 +93,38 @@
         margin-top: 20px;
         color: #333;
       }
+      .dropdown-container {
+        margin-top: 20px;
+      }
+      .dropdown-container select {
+        padding: 10px;
+        font-size: 16px;
+        margin: 0 10px;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+      }
     </style>
   </head>
   <body>
     <div class="welcome-text">Welcome to MACAT</div>
     <div class="user-info">Hello, {{ user.name }}!</div>
     <div class="content">
-      <video controls>
-        <source src="static/avatar_videos/test_video.mp4" type="video/mp4" />
+      <div class="dropdown-container">
+        <label for="language-select">Select Language:</label>
+        <select id="language-select" onchange="changeVideo()">
+          <option value="english" selected>English</option>
+          <option value="igbo">Igbo</option>
+          <option value="yoruba">Yoruba</option>
+          <option value="hausa">Hausa</option>
+          <option value="pidgin">Pidgin</option>
+        </select>
+      </div>
+      <video id="avatar-video" controls>
+        <source
+          id="video-source"
+          src="static/avatar_videos/english.mp4"
+          type="video/mp4"
+        />
         Your browser does not support the video tag.
       </video>
       <div class="button-container">
@@ -110,19 +135,30 @@
     </div>
 
     <script>
+      function changeVideo() {
+        const languageSelect = document.getElementById("language-select");
+        const videoSource = document.getElementById("video-source");
+        const selectedLanguage = languageSelect.value;
+
+        // Add a unique query parameter to the video source URL to bypass the cache
+        const uniqueParam = new Date().getTime();
+        videoSource.src = `static/avatar_videos/${selectedLanguage}.mp4?cacheBust=${uniqueParam}`;
+
+        // Reload the video to apply the new source
+        const video = document.getElementById("avatar-video");
+        video.load();
+      }
+
       function startMic() {
         window.location.href = "/user/record_audio";
       }
 
       function startVideo() {
-        //alert("Video button clicked!");
         window.location.href = "/user/upload_video";
-        // Add your video recording functionality here
       }
 
       function uploadAudio() {
         window.location.href = "/user/upload_audio";
-        // Add your audio upload functionality here
       }
     </script>
   </body>

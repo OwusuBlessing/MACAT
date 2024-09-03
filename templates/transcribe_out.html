@@ -24,6 +24,7 @@
         width: 90%;
         max-width: 1200px;
         height: 95%; /* Make container occupy more vertical space */
+        padding: 20px;
       }
       .left {
         flex: 2;
@@ -42,17 +43,22 @@
         align-items: center;
         padding: 20px;
       }
-      .transcribed-text-box {
+      .transcribed-text-box,
+      .refined-text-box {
         flex-grow: 1;
         overflow-y: auto;
-        padding: 10px;
+        padding: 20px;
         white-space: pre-wrap;
         word-wrap: break-word;
+        overflow-wrap: break-word;
         border: 1px solid #ddd;
-        border-radius: 5px;
+        border-radius: 10px;
         background-color: #f9f9f9;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        margin-top: 20px;
       }
-      .transcribed-text-box h2 {
+      .transcribed-text-box h2,
+      .refined-text-box h2 {
         margin-top: 0;
       }
       .buttons {
@@ -157,17 +163,14 @@
           transform: rotate(360deg);
         }
       }
-      .refined-text-box {
-        flex-grow: 1;
-        overflow-y: auto;
-        padding: 10px;
-        border: 1px solid #ddd;
-        border-radius: 5px;
-        background-color: #f9f9f9;
+      .translate-options {
         margin-top: 20px;
-        white-space: pre-wrap;
-        word-wrap: break-word;
-        max-height: 40%; /* Ensuring the text box doesn't expand indefinitely */
+      }
+      .translate-options select {
+        padding: 10px;
+        font-size: 16px;
+        border-radius: 5px;
+        border: 1px solid #ddd;
       }
     </style>
   </head>
@@ -204,7 +207,15 @@
         </div>
       </div>
       <div class="right">
-        <h3>Select a language for your transcribed text</h3>
+        <h3>Select a language and text type for your translation</h3>
+        <div class="translate-options">
+          <select id="text-type">
+            <option value="original">Original Text</option>
+            <option value="refined">Refined Text</option>
+            <option value="summarized">Summarized Text</option>
+            <option value="formatted">Formatted Text</option>
+          </select>
+        </div>
         <div class="buttons">
           <button onclick="translateText('Yoruba')">Yoruba</button>
           <button onclick="translateText('Igbo')">Igbo</button>
@@ -232,12 +243,52 @@
         });
       }
 
-      function translateText(language) {
-        alert("Translating text to " + language + "...");
-        // Add your translation functionality here
+      async function translateText(language) {
+        const originalText =
+          document.getElementById("original-text").textContent;
+        const refinedText = document.getElementById("refined-text").textContent;
+        const refinedTextBox = document.getElementById("refined-text-box");
+        const textType = document.getElementById("text-type").value;
+        let textToTranslate;
+
+        if (textType === "original") {
+          textToTranslate = originalText;
+        } else if (
+          textType === "refined" &&
+          refinedTextBox.style.display !== "none"
+        ) {
+          textToTranslate = refinedText;
+        } else if (textType === "summarized") {
+          textToTranslate = refinedText; // assuming summarized text is displayed in refined text box
+        } else if (textType === "formatted") {
+          textToTranslate = refinedText; // assuming formatted text is displayed in refined text box
+        } else {
+          alert("Please apply the selected text type first.");
+          return;
+        }
+
+        const response = await fetch("/translate", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            language: language,
+            text: textToTranslate,
+          }),
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          window.location.href = `/translate?language=${encodeURIComponent(
+            language
+          )}&text=${encodeURIComponent(result.text)}`;
+        } else {
+          alert("Translation failed.");
+        }
       }
 
-      function typeWriterEffect(element, text, delay = 10) {
+      function typeWriterEffect(element, text, delay = 1) {
         element.textContent = "";
         let i = 0;
         const interval = setInterval(() => {
@@ -277,7 +328,7 @@
                 ? "Formatted text"
                 : "Refined text";
             document.getElementById("refined-text-box").style.display = "block";
-            typeWriterEffect(refinedTextElement, result.text, 10); // Set delay to 10ms for faster typing effect
+            typeWriterEffect(refinedTextElement, result.text, 1); // Set delay to 1ms for faster typing effect
           } else {
             alert("Failed to refine the text.");
           }

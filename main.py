@@ -31,6 +31,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from src.macat.transcriber import Transcriber
 from src.macat.bot import refine_transcription
+from src.macat.translator import get_translation
+from pydantic import BaseModel
 app = FastAPI()
 app.add_middleware(SessionMiddleware, secret_key="add any string...")
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -216,6 +218,30 @@ async def topic_model_text(request: Request, transcription: str = Form(...), rol
     except Exception as e:
         print(f"Error saving file: {e}")
         return JSONResponse(content={"status": "error", "message": str(e)}, status_code=500)
+    
+
+class TranslationRequest(BaseModel):
+    language: str
+    text: str
+
+@app.post("/translate")
+async def translate_text(request: TranslationRequest):
+    language = request.language
+    text = request.text
+
+    # Perform translation based on language
+    translated_text = get_translation(text, language)  # Implement your translation logic here
+
+    return JSONResponse(content={"text": translated_text})
+
+@app.get("/translate", response_class=HTMLResponse)
+async def get_translated_page(request: Request, language: str, text: str):
+    return templates.TemplateResponse("translation.html", {
+        "request": request,
+        "language": language,
+        "text": text
+    })
+
 
 if __name__ == "__main__":
     run("main:app", host="0.0.0.0", port=8000, reload=True)
